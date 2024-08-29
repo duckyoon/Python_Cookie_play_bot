@@ -4,29 +4,11 @@ import time
 import threading
 import math
 
-def purchase_item():
-    try:
-        if elder_pledge.is_enabled():
-            elder_pledge.click()
-        if time_machine.is_enabled():
-            time_machine.click()
-        if protal.is_enabled():
-            protal.click()
-        if alchemy_lab.is_enabled():
-            alchemy_lab.click()
-        if shipment.is_enabled():
-            shipment.click()
-        if mine.is_enabled():
-            mine.click()
-        if factory.is_enabled():
-            factory.click()
-        if grandma.is_enabled():
-            grandma.click()
-        if cursor.is_enabled():
-            cursor.click()
-    except:
-        pass
 
+
+def cookie_number():
+    money = driver.find_element(By.ID, "money")
+    return int(money.text)
     
 cookie_url = "https://orteil.dashnet.org/experiments/cookie/"
 
@@ -37,29 +19,57 @@ driver = webdriver.Chrome(options=chrome_options)
 driver.get(cookie_url)
 
 cookie = driver.find_element(By.ID, "cookie")
-elder_pledge = driver.find_element(By.ID,"buyElder Pledge")
-time_machine = driver.find_element(By.ID,"buyTime machine")
-protal = driver.find_element(By.ID,"buyPortal")
-alchemy_lab = driver.find_element(By.ID,"buyAlchemy lab")
-shipment = driver.find_element(By.ID,"buyShipment")
-mine = driver.find_element(By.ID,"buyMine")
-factory = driver.find_element(By.ID,"buyFactory")
-grandma = driver.find_element(By.ID,"buyGrandma")
-cursor = driver.find_element(By.ID,"buyCursor")
+items = driver.find_elements(By.CSS_SELECTOR, "#store div")
+item_ids = [item.get_attribute('id') for item in items]
 
-start_time = int(time.time())
+
+time_out = time.time() + 5
+close_time = time.time() + 5 * 60
 end = False
 while not end: 
+    
     cookie.click()
     time.sleep(0.1)
-    end_time = int(time.time())
-    elapsed_time = end_time - start_time
-    if elapsed_time % 5 == 0:
-        purchase_item()
-
-    if elapsed_time > 300:
-        end = True
+    
+    if time.time() > time_out:
         
+        # get item price
+        prices = driver.find_elements(By.CSS_SELECTOR,("#store b"))
+        item_prices = []
+        for price in prices:
+            if price.text != "":
+                price = int(price.text.split("-")[1].strip().replace(",",""))
+                item_prices.append(price)
+               
+        # cookie upgrade
+        cookie_upgrade = {}
+        for n in range(len(item_prices)):
+            cookie_upgrade[item_prices[n]] = item_ids[n]
+             
+        # get cookie number
+        money = cookie_number()
+        print(money)
+        
+        # 업그레이드 가능한 아이템 찾기
+        affordable_upgrades = {}
+        for cost, id in cookie_upgrade.items():
+            if money > cost:
+                affordable_upgrades[cost] = id
+                
+        # 가장 비싼 업그레이드 찾기
+        most_expensive_affordable_price = max(affordable_upgrades)
+        print(most_expensive_affordable_price)
+        purchase_id = affordable_upgrades[most_expensive_affordable_price]
+        
+        driver.find_element(By.ID,purchase_id).click()
+
+        time_out += 5
+    
+    if time.time() > close_time:
+        cps = driver.find_element(By.ID,"cps").text
+        print(cps)
+        end = True
+    
 driver.quit()
 print("Game Over")
 
